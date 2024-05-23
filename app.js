@@ -15,7 +15,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 let cors = require('cors');
 app.use(cors({
     origin: 'http://127.0.0.1:5000',
-    options: ['GET', 'POST', 'DELETE'],
+    methods: ['GET', 'POST', 'DELETE'],
     credentials: true
 }));
 
