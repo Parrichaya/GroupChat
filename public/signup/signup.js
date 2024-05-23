@@ -11,6 +11,7 @@ function signup(event) {
         "http://localhost:5000/user/signup", signupDetails)
       .then((response) => {
         console.log(response)
+        alert(response.data.message)
         window.location.href = "../login/login.html";
       })
       .catch((err) => {
