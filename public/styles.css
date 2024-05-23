@@ -1,0 +1,39 @@
+/* .nav-tabs .nav-link.active {
+    background-color: midnightblue;
+    color: white;
+}
+.nav-tabs .nav-link {
+    color: midnightblue;
+} */
+
+.navbar-custom {
+    background-color: indigo;
+}
+.nav-link.active {
+    background-color: indigo;
+    color: white !important;
+    font-weight: bold;
+}
+.nav-link {
+    color: whitesmoke;
+    &:hover {
+        color: plum;
+    }
+}
+.navbar-brand {
+    color: white;
+}
+.navbar-custom h4 {
+    margin: 0;
+    color: white;
+    text-align: center;
+    width: 100%;
+}
+
+.btn-blueviolet {
+    background-color: blueviolet;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+}
