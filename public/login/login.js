@@ -11,7 +11,7 @@ function login(event) {
         console.log(response)
         alert(response.data.message)
         localStorage.setItem("token", response.data.token)
-        // window.location.href = "";
+        window.location.href = "../chat/chat.html";
       })
       .catch((err) => {
         const errorMessage = document.getElementById('error-message');
