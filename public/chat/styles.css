@@ -1,5 +1,5 @@
 body {
-    background-color: #f8f9fa;
+    background-color: #c6bdce;
 }
 
 .custom-header {
@@ -7,11 +7,12 @@ body {
 }
 
 .custom-button {
-    background-color: blueviolet; /* Custom button color */
-    border-color: blueviolet;
+    background-color: rgb(75, 39, 133); /* Custom button color */
+    border-color: rgb(75, 39, 133);
     &:hover {
-        background-color: purple /* Darker shade for hover state */
+        background-color: indigo /* Darker shade for hover state */
     }
+    margin-left: 4px;
 }
 .chat-messages {
     border-top: 1px solid #dee2e6;
@@ -24,3 +25,46 @@ body {
     background-color: #f1f1f1;
     border-radius: 4px;
 }
+
+.navbar-custom {
+    background-color: indigo;
+}
+.nav-link.active {
+    background-color: indigo;
+    color: white !important;
+    font-weight: bold;
+}
+.nav-link {
+    font-size: medium;
+    color: whitesmoke;
+    &:hover {
+        color: rgb(149, 104, 221);
+    }
+}
+
+/* .navbar {
+    width: 100%;
+    text-align: center;
+  } */
+  
+  /* Center the navbar title */
+  .navbar h4 {
+    /* display: inline-block; */
+    margin-right: -50px;
+    color: white;
+    font-size: 1.5rem;
+  }
+
+  /* Align the 'Sign out' link to the right */
+  .navbar-nav {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+/* @media (max-width: 768px) {
+    .navbar-custom h4 {
+        font-size: 1.2rem;
+    }
+} */

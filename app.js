@@ -22,11 +22,18 @@ app.use(cors({
 const userRoutes = require('./routes/user');
 app.use('/user', userRoutes);
 
+const chatRoutes = require('./routes/chat');
+app.use('/chat', chatRoutes);
+
 app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, `public/${req.url}`));
 })
 
 const User = require('./models/user');
+const Chat = require('./models/chat');
+
+User.hasMany(Chat, { onDelete: 'CASCADE'});
+Chat.belongsTo(User);
 
 sequelize.sync({})
     .then(() => {

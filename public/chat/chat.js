@@ -12,14 +12,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
     }
 
-    addMessage('You joined the chat!', 'Bot');
+    // addMessage('You joined the chat!', 'Bot');
     
     // Event listener for the Send button
     sendButton.addEventListener('click', () => {
         const message = messageInput.value.trim();
-        if (message !== '') {
-            addMessage(message);
-            messageInput.value = '';
+        if (message) {
+            axios.post('http://localhost:5000/chat/add-chat', { message: message }, { headers: { "Authorization": localStorage.getItem("token") } })
+            .then(response => {
+                addMessage(message);
+                messageInput.value = '';
+            })
+            .catch(error => console.error(error));
         }
     });
 

@@ -41,7 +41,7 @@ exports.addUser = (req, res, next) => {
 const jwt = require('jsonwebtoken');
 
 function createToken(id,username) {
-    return jwt.sign({userId: id, username: username}, process.env.TOKEN_SECRET, {expiresIn: '3600s'});
+    return jwt.sign({userId: id, username: username}, process.env.TOKEN_SECRET);
 }
 
 exports.loginUser = (req, res, next) => {
