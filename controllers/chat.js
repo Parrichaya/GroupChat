@@ -15,3 +15,17 @@ exports.addChat = async (req, res, next) => {
         res.status(500).json({ message: "An error occurred", error: err });
     }
 }
+
+exports.getChats = async (req, res, next) => {
+    try {
+        const chats = await Chat.findAll({ include: {
+            model: User,
+            attributes: ['username']
+        }
+     });
+        res.status(200).json({ chats: chats });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "An error occurred", error: err });
+    }
+}
