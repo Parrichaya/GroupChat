@@ -3,7 +3,7 @@ function signup(event) {
     const signupDetails = {
         username: event.target.username.value,
         email: event.target.email.value,
-        phone: event.target.phone.value,
+        // phone: event.target.phone.value,
         password: event.target.password.value
       }
     axios
@@ -22,6 +22,6 @@ function signup(event) {
    
     document.getElementById("username").value = "";
     document.getElementById("email").value = "";
-    document.getElementById("phone").value = "";
+    // document.getElementById("phone").value = "";
     document.getElementById("password").value = "";
   }

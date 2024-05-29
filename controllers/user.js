@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 exports.addUser = (req, res, next) => {
     const username = req.body.username;
     const email = req.body.email;
-    const phone = req.body.phone;
+    // const phone = req.body.phone;
     const password = req.body.password;
     
     bcrypt.hash(password, 10, (err, hash) => {
@@ -19,7 +19,7 @@ exports.addUser = (req, res, next) => {
         User.create({
             username: username,
             email: email,
-            phone: phone,
+            // phone: phone,
             password: hash
         })
         .then((newUser) => {

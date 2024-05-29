@@ -1,7 +1,12 @@
 document.addEventListener('DOMContentLoaded', (event) => {
     const chatMessages = document.getElementById('chat-messages');
     const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');    
+    const sendButton = document.getElementById('send-button');   
+    const createGroupButton = document.getElementById('create-group-button');
+    const groupList = document.getElementById('group-list'); 
+    const groupMembersDiv = document.getElementById('group-members');
+    const createGroupModal = new bootstrap.Modal(document.getElementById('create-group-modal'), {});
+
 
     // Get the logged-in username from local storage 
     const tokenDetails = localStorage.getItem("token");
@@ -31,9 +36,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Show Users joined! message
     addMessage('', loggedInUser);
 
+    let currentGroupId = null;
+    let msgId = null;
+
     // Get messages from local storage
-    function fetchMessagesFromLocalStorage() {
-        const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+    function fetchMessagesFromLocalStorage(groupId) {
+        const groupChatMessages = `chatMessages_group_${groupId}`;
+        const messages = JSON.parse(localStorage.getItem(groupChatMessages)) || [];
         messages.forEach(message => {
             addMessage(message.message, message.username);
         })
@@ -46,8 +55,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     // Save messages to local storage
-    function saveMessageToLocalStorage(message, username, id) {
-        const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+    function saveMessageToLocalStorage(message, username, id, groupId) {
+        const groupChatMessages = `chatMessages_group_${groupId}`;
+        const messages = JSON.parse(localStorage.getItem(groupChatMessages)) || [];
         let msgIdExists = false;
         for (let i = 0; i < messages.length; i++) {
             if (messages[i].id === id) {
@@ -63,20 +73,22 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 messages.shift();
             }
             
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
+            localStorage.setItem(groupChatMessages, JSON.stringify(messages));
         }
     }
 
-    let msgId = fetchMessagesFromLocalStorage();  // Call the function and also keep track of the last message ID
+    if (currentGroupId) {
+        msgId = fetchMessagesFromLocalStorage(currentGroupId);
+    }
     
-    // Event listener for the Send button
-    sendButton.addEventListener('click', () => {
+     // Event listener for the Send button
+     sendButton.addEventListener('click', () => {
         const message = messageInput.value.trim();
-        if (message) {
-            axios.post('http://localhost:5000/chat/add-chat', { message: message }, { headers: { "Authorization": localStorage.getItem("token") } })
+        if (message && currentGroupId) {
+            axios.post('http://localhost:5000/chat/add-chat', { message: message, groupId: currentGroupId }, { headers: { "Authorization": localStorage.getItem("token") } })
             .then(response => {
                 addMessage(message, loggedInUser);
-                saveMessageToLocalStorage(message, loggedInUser, response.data.chatMessage.id);
+                saveMessageToLocalStorage(message, loggedInUser, response.data.chatMessage.id, currentGroupId);
                 messageInput.value = '';
                 msgId = response.data.chatMessage.id;
             })
@@ -93,7 +105,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Get chat messages
     function fetchChats() {
-        axios.get(`http://localhost:5000/chat/get-chats?lastId=${msgId}`, { headers: { "Authorization": localStorage.getItem("token") } })
+        if (!currentGroupId) {
+            return;
+        }
+
+        axios.get(`http://localhost:5000/chat/get-chats?lastId=${msgId}&groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             response.data.chats.forEach(message => {
                 // if (message.id > msgId) {
@@ -101,13 +117,93 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 //     msgId = message.id;
                 // }
                 addMessage(message.message, message.username);
-                saveMessageToLocalStorage(message.message, message.username, message.id);
+                saveMessageToLocalStorage(message.message, message.username, message.id, currentGroupId);
                 msgId = message.id;
             });
         })
         .catch(error => console.error(error));
     }    
 
-    fetchChats();
-    setInterval(fetchChats, 2000);
+    // fetchChats();
+    // setInterval(fetchChats, 2000);
+
+    // Fetch all users and populate the checkboxes
+    function fetchUsers() {
+        axios.get('http://localhost:5000/chat/get-users', { headers: { "Authorization": localStorage.getItem("token") } })
+        .then(response => {
+            const users = response.data.users;
+            groupMembersDiv.innerHTML = '';
+            users.forEach(user => {
+                if (user.username !== loggedInUser) {
+                    const checkbox = document.createElement('div');
+                    checkbox.innerHTML = `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${user.id}" id="user-${user.id}">
+                            <label class="form-check-label" for="user-${user.id}">
+                                ${user.username}
+                            </label>
+                        </div>`;
+                    groupMembersDiv.appendChild(checkbox);
+                }
+            });
+        })
+        .catch(error => console.error(error));
+    }
+
+    // Event listener for the Create Group button
+    createGroupButton.addEventListener('click', () => {
+        fetchUsers();
+        createGroupModal.show();
+    })
+    
+    let pollInterval;
+
+    function fetchGroups() {
+        axios.get('http://localhost:5000/chat/get-groups', { headers: { "Authorization": localStorage.getItem("token") } })
+        .then(response => {
+            groupList.innerHTML = '';
+            response.data.groups.forEach((group, index) => {
+                const groupElement = document.createElement('div');
+                groupElement.classList.add('group-item');
+                groupElement.textContent = group.name;
+                groupElement.addEventListener('click', () => {
+                    document.querySelectorAll('.group-item').forEach(item => item.classList.remove('active'));
+                    groupElement.classList.add('active');
+                    currentGroupId = group.id;
+                    chatMessages.innerHTML = '';
+                    msgId = fetchMessagesFromLocalStorage(currentGroupId);
+                    fetchChats();
+                    
+                    // clear existing poll interval and start a new one for the new group
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                    }
+                    pollInterval = setInterval(fetchChats, 2000);
+                });
+                groupList.appendChild(groupElement);
+
+                if (index === 0) {
+                    groupElement.click();
+                }
+            });
+        })
+        .catch(error => console.error(error));
+    }
+
+    fetchGroups();
+
+    // Create group form submission
+    document.getElementById('create-group-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const groupName = document.getElementById('group-name').value;
+        const selectedUserIds = Array.from(document.querySelectorAll('#group-members input:checked')).map(checkbox => checkbox.value);
+
+        axios.post('http://localhost:5000/chat/add-group', { name: groupName, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        .then(response => {
+            console.log(response);
+            createGroupModal.hide();
+            fetchGroups();
+        })
+        .catch(error => console.error(error));
+    })    
 });
