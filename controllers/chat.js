@@ -102,3 +102,130 @@ exports.getGroups = async (req, res, next) => {
         res.status(500).json({ message: "An error occurred", error: err });
     }
 }
+
+exports.getUsersFromGroup = async (req, res, next) => {
+    const groupId = req.query.groupId; 
+
+    try {
+        const groupMembers = await GroupMember.findAll({
+            where: { groupId: groupId },
+            include: [{
+                model: User,
+                attributes: ['id', 'username']
+            }],
+            attributes: ['isAdmin']
+        });
+
+        // Extract user data from groupMembers
+        const users = groupMembers.map(member => {
+            return {
+                id: member.user.id,
+                username: member.user.username,
+                isAdmin: member.isAdmin
+            };
+        });
+        
+        res.status(200).json({ members: users });
+    } catch (error) {
+        console.error('Error occurred while fetching group members', error);
+        res.status(500).json({ message: 'Failed to fetch group members' });
+    }
+};
+
+exports.addUsersToGroup = async (req, res, next) => {
+    const groupId = req.body.groupId;
+    const userIds = req.body.userIds;
+
+    try {
+        // ensure if the user is an admin
+        const isAdmin = await GroupMember.findOne({
+            where: {
+                groupId: groupId,
+                userId: req.user.id,
+                isAdmin: true
+            }
+        })
+
+        if (!isAdmin) {
+            return res.status(401).json({ message: 'Unauthorized! Only admins can modify the group' });
+        }
+
+        // If the user is an admin, proceed to add users to the group
+        for (const userId of userIds) {
+            await GroupMember.create({
+                groupId: groupId,
+                userId: userId,
+                isAdmin: false
+            });
+        }
+
+        res.status(201).json({ message: 'Users added to group!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to add users to group' });
+    }
+}
+
+exports.makeUserAdmin = async (req, res, next) => {
+    const groupId = req.body.groupId;
+    const userIds = req.body.userIds;
+
+    try {
+        // ensure if the user is an admin
+        const isAdmin = await GroupMember.findOne({
+            where: {
+                groupId: groupId,
+                userId: req.user.id,
+                isAdmin: true
+            }
+        })
+
+        if (!isAdmin) {
+            return res.status(401).json({ message: 'Unauthorized! Only admins can modify the group' });
+        }
+
+        // Update the group members to be admins
+        await GroupMember.update({ isAdmin: true }, {
+            where: {
+                groupId: groupId,
+                userId: { [Op.in]: userIds }
+            }
+        });
+
+        res.status(201).json({ message: 'Users made admin!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to make users admin' });
+    }
+}
+
+exports.removeUsersFromGroup = async (req, res, next) => {
+    const groupId = req.body.groupId;
+    const userIds = req.body.userIds;
+
+    try {
+        // ensure if the user is an admin
+        const isAdmin = await GroupMember.findOne({
+            where: {
+                groupId: groupId,
+                userId: req.user.id,
+                isAdmin: true
+            }
+        })
+
+        if (!isAdmin) {
+            return res.status(401).json({ message: 'Unauthorized! Only admins can modify the group' });
+        }
+
+        // Remove users from the group
+        await GroupMember.destroy({
+            where: {
+                groupId: groupId,
+                userId: { [Op.in]: userIds }
+            }
+        });
+
+        res.status(201).json({ message: 'Users removed from group!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to remove users from group' });
+    }
+}
+      

@@ -12,5 +12,9 @@ router.get('/get-chats', userAuth.authenticate, chatController.getChats);
 router.get('/get-users', userAuth.authenticate, chatController.getUsers);
 router.post('/add-group', userAuth.authenticate, chatController.addGroup);
 router.get('/get-groups', userAuth.authenticate, chatController.getGroups);
+router.get('/get-group-members', userAuth.authenticate, chatController.getUsersFromGroup);
+router.post('/add-users-to-group', userAuth.authenticate, chatController.addUsersToGroup);
+router.post('/make-admin', userAuth.authenticate, chatController.makeUserAdmin);
+router.post('/remove-users-from-group', userAuth.authenticate, chatController.removeUsersFromGroup);
 
 module.exports = router;

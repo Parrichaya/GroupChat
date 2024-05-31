@@ -34,8 +34,19 @@
         </div>
     </div>
     <div class="card w-75">
-        <div class="card-header custom-header text-white text-center">
+        <div class="card-header custom-header text-white text-center d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Messenger</h4>
+            <!-- Dropdown for user management -->
+            <div class="dropdown position-absolute" id="user-management-dropdown" style="right: 15px">
+                <button class="btn btn-sm custom-button1 dropdown-toggle" type="button" id="dropdownUserManagement" data-bs-toggle="dropdown" aria-expanded="false">
+                    Manage Users
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownUserManagement">
+                    <li><a class="dropdown-item" id="add-user-option">Add User</a></li>
+                    <li><a class="dropdown-item" id="remove-user-option">Remove User</a></li>
+                    <li><a class="dropdown-item" id="make-user-admin-option">Make User Admin</a></li>
+                </ul>
+            </div>
         </div>
         <div class="card-body chat-messages overflow-auto" id="chat-messages" style="height: 700px;">
             <!-- Chat Messages -->
@@ -79,6 +90,82 @@
       </div>
   </div>
 </div>
+
+<!-- Modal for adding a new user to a group -->
+<div class="modal fade" id="add-user-modal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-center position-relative">
+                <h5 class="modal-title" id="addUserModalLabel">Add User to Group</h5>
+                <button type="button" class="btn-close position-absolute" style="right: 10px;" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-user-form">
+                    <div class="form-group">
+                        <label for="add-user-checkboxes">Select Users</label>
+                        <div id="add-user-checkboxes">
+                            <!-- User checkboxes will be appended here by JavaScript -->
+                        </div>
+                    </div><br>
+                    <div class="text-center">
+                      <button type="submit" class="btn custom-button text-white">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Modal for removing a user from a group -->
+<div class="modal fade" id="remove-user-modal" tabindex="-1" role="dialog" aria-labelledby="removeUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-center position-relative">
+                <h5 class="modal-title" id="removeUserModalLabel">Remove User from Group</h5>
+                <button type="button" class="btn-close position-absolute" style="right: 10px;" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="remove-user-form">
+                    <div class="form-group">
+                        <label for="remove-user-checkboxes">Select Users</label>
+                        <div id="remove-user-checkboxes">
+                            <!-- User checkboxes will be appended here by JavaScript -->
+                        </div>
+                    </div><br>
+                    <div class="text-center">
+                      <button type="submit" class="btn custom-button text-white">Remove</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Modal for making users admin -->
+<div class="modal fade" id="make-admin-modal" tabindex="-1" aria-labelledby="makeAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="makeAdminModalLabel">Make Users Admin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="make-admin-form">
+                    <div class="form-group">
+                        <label for="make-admin-checkboxes">Make Users Admin</label>
+                        <div id="make-admin-checkboxes">
+                            <!-- User checkboxes will be appended here by JavaScript -->
+                        </div>
+                    </div><br>
+                    <div class="text-center">
+                      <button type="submit" class="btn custom-button text-white">Make Admin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.1/axios.min.js"></script>
     <script src="chat.js"></script>
 </body>
