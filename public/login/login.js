@@ -6,7 +6,7 @@ function login(event) {
       }
     axios
       .post(
-        "http://localhost:5000/user/login", loginDetails)
+        "http://13.236.146.218:5000/user/login", loginDetails)
       .then((response) => {
         console.log(response)
         alert(response.data.message)

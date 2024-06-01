@@ -8,7 +8,7 @@ function signup(event) {
       }
     axios
       .post(
-        "http://localhost:5000/user/signup", signupDetails)
+        "http://13.236.146.218:5000/user/signup", signupDetails)
       .then((response) => {
         console.log(response)
         alert(response.data.message)
