@@ -166,6 +166,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
         .catch(error => console.error(error));
     }
 
+    fetchUsers();
+
     function getUsersFromGroup() {
         // Retrieve the users from local storage
         const allUsers = JSON.parse(localStorage.getItem('users')) || [];
