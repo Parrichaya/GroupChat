@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const makeAdminModal = new bootstrap.Modal(document.getElementById('make-admin-modal'), {});
     const dropdown = document.getElementById('user-management-dropdown');
 
+    const socket = io('http://localhost:4000');
+
     // Get the logged-in username from local storage 
     const tokenDetails = localStorage.getItem("token");
     let loggedInUser = '';
@@ -30,22 +32,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Add a message to the chat
     function addMessage(message, sender) {
-        const messageElement = document.createElement('div');        
-
-        // if (message === '') {
-        //     messageElement.classList.add('join-message');
-        //     messageElement.innerHTML = `${sender === loggedInUser ? 'You' : sender} joined the chat!`;
-        // } else {
-            messageElement.classList.add('message');
-            messageElement.innerHTML = `<strong>${sender === loggedInUser ? 'You' : sender}:</strong> ${message}`;
-        // }
+        const messageElement = document.createElement('div');    
+        messageElement.classList.add('message');
+        messageElement.innerHTML = `<strong>${sender === loggedInUser ? 'You' : sender}:</strong> ${message}`;
 
         chatMessages.appendChild(messageElement);
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
     }
-
-    // Show Users joined! message
-    // addMessage('', loggedInUser);
 
     let currentGroupId = null;
     let msgId = null;
@@ -102,10 +95,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (message && currentGroupId) {
             axios.post('http://localhost:5000/chat/add-chat', { message: message, groupId: currentGroupId }, { headers: { "Authorization": localStorage.getItem("token") } })
             .then(response => {
-                addMessage(message, loggedInUser);
-                saveMessageToLocalStorage(message, loggedInUser, response.data.chatMessage.id, currentGroupId);
                 messageInput.value = '';
-                msgId = response.data.chatMessage.id;
             })
             .catch(error => console.error(error));
         }
@@ -118,6 +108,15 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
     });
 
+    // Listen for real-time chat messages
+    socket.on('newMessage', (data) => {
+        if (data.groupId === currentGroupId) {
+            addMessage(data.message, data.username);
+            saveMessageToLocalStorage(data.message, data.username, data.id, currentGroupId);
+            msgId = data.id;
+        }
+    });
+
     // Get chat messages
     function fetchChats() {
         if (!currentGroupId) {
@@ -127,10 +126,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         axios.get(`http://localhost:5000/chat/get-chats?lastId=${msgId}&groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             response.data.chats.forEach(message => {
-                // if (message.id > msgId) {
-                //     addMessage(message.message, message.username);
-                //     msgId = message.id;
-                // }
                 addMessage(message.message, message.username);
                 saveMessageToLocalStorage(message.message, message.username, message.id, currentGroupId);
                 msgId = message.id;
@@ -138,9 +133,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         })
         .catch(error => console.error(error));
     }    
-
-    // fetchChats();
-    // setInterval(fetchChats, 2000);
 
     // Fetch all users and populate the checkboxes
     function fetchUsers() {
@@ -256,8 +248,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         removeUserModal.show();
     })
 
-    let pollInterval;
-
     // Function to check if the user is an admin of the current group
     async function isAdminStatus(groupId) {
         try {
@@ -284,6 +274,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 groupElement.classList.add('group-item');
                 groupElement.textContent = group.name;
                 groupElement.addEventListener('click', async () => {
+                    localStorage.setItem('index', index);
                     document.querySelectorAll('.group-item').forEach(item => item.classList.remove('active'));
                     groupElement.classList.add('active');
                     currentGroupId = group.id;
@@ -300,16 +291,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     msgId = fetchMessagesFromLocalStorage(currentGroupId);
                     fetchChats();
                     getUsersFromGroup();
-                    
-                    // clear existing poll interval and start a new one for the new group
-                    if (pollInterval) {
-                        clearInterval(pollInterval);
-                    }
-                    pollInterval = setInterval(fetchChats, 2000);
                 });
                 groupList.appendChild(groupElement);
 
-                if (index === 0) {
+                if (index === parseInt(localStorage.getItem('index'))) {
                     groupElement.click();
                 }
             });
@@ -318,6 +303,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     fetchGroups();
+
+    // Listen for newGroups event
+    socket.on('newGroup', () => {
+        fetchGroups();
+    });
 
     // Create group form submission
     document.getElementById('create-group-form').addEventListener('submit', (event) => {
@@ -329,7 +319,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         .then(response => {
             console.log(response);
             createGroupModal.hide();
-            fetchGroups();
         })
         .catch(error => console.error(error));
     })    

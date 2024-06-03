@@ -5,6 +5,27 @@ const GroupMember = require("../models/group-member");
 
 const { Op } = require("sequelize");
 
+const io = require('socket.io')(4000, {
+    cors: {
+        origin: "http://localhost:5000",
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
+
+io.on('connection', (socket) => {
+    console.log('A USER CONNECTED.........')
+
+    socket.on('joinGroup', (groupId) => {
+        socket.join(groupId)
+        console.log('User joined group ${groupId}');
+    })
+
+    socket.on('disconnect', () => {
+        console.log('USER DISCONNECTED......');
+    })
+})
+
 exports.addChat = async (req, res, next) => {
     try {
         const message = req.body.message;
@@ -12,6 +33,13 @@ exports.addChat = async (req, res, next) => {
         const chatMessage = await req.user.createChat({
             username: req.user.username,
             message: message,
+            groupId: groupId
+        });
+
+        io.emit('newMessage', { 
+            message: message,
+            username: req.user.username,
+            id: chatMessage.id,
             groupId: groupId
         })
         console.log('Message sent and stored!');
@@ -82,6 +110,7 @@ exports.addGroup = async (req, res, next) => {
         // Insert group members
         await GroupMember.bulkCreate(groupMembers, { ignoreDuplicates: true, updateOnDuplicate: ['isAdmin'] });
 
+        io.emit('newGroup', { group: group });
         res.status(201).json({ group: group });
     } catch (err) {
         res.status(500).json({ message: "An error occurred", error: err });
