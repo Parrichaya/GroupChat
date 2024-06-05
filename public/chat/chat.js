@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const chatMessages = document.getElementById('chat-messages');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');   
+    const fileInput = document.getElementById('file-input');
     const createGroupButton = document.getElementById('create-group-button');
     const addUserOption = document.getElementById('add-user-option');
     const removeUserOption = document.getElementById('remove-user-option');
@@ -34,8 +35,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
     function addMessage(message, sender) {
         const messageElement = document.createElement('div');    
         messageElement.classList.add('message');
-        messageElement.innerHTML = `<strong>${sender === loggedInUser ? 'You' : sender}:</strong> ${message}`;
-
+        
+        const senderText = `<strong>${sender === loggedInUser ? 'You' : sender}:</strong>`;
+        
+        // Check if the message is a URL
+        if (message.startsWith('http://') || message.startsWith('https://')) {
+            // Create a link to the file URL
+            messageElement.innerHTML = `${senderText} <a href="${message}" target="_blank">Attached File</a>`;
+        } else {
+            // Regular text message
+            messageElement.innerHTML = `${senderText} ${message}`;
+        }
+        
         chatMessages.appendChild(messageElement);
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
     }
@@ -101,6 +112,30 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
     });
 
+    // Event listener for the File input
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('groupId', currentGroupId);
+
+            axios.post('http://localhost:5000/chat/upload-file', formData, {
+                headers: {
+                    "Authorization": localStorage.getItem("token"),
+                    "Content-Type": "multipart/form-data"
+                }
+            })
+            .then(response => {
+                // Populate the message input field with the S3 URL
+                messageInput.value = response.data.fileUrl;
+                fileInput.value = ''; // Clear the file input after upload
+                console.log('File uploaded successfully:', response.data);
+            })
+            .catch(error => console.error(error));
+        }
+    })
+
     // Event listener for 'Enter' key
     messageInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -157,7 +192,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         })
         .catch(error => console.error(error));
     }
-
+    
+    fetchUsers()
+    
     function getUsersFromGroup() {
         // Retrieve the users from local storage
         const allUsers = JSON.parse(localStorage.getItem('users')) || [];
