@@ -4,6 +4,8 @@ const User = require("../models/user");
 
 const { Op } = require("sequelize");
 
+const io = require('../services/socket');
+
 exports.addGroup = async (req, res, next) => {
     try {
         const name = req.body.name;

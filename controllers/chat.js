@@ -1,21 +1,19 @@
 const User = require("../models/user");
 const Chat = require("../models/chat");
-// const Group = require("../models/group");
-// const GroupMember = require("../models/group-member");
+
 const S3Service = require('../services/S3services');
 
 const { Op } = require("sequelize");
 
-const io = require('socket.io')(4000, {
-    cors: {
-        origin: "http://13.236.146.218:5000",
-        methods: ['GET', 'POST'],
-        credentials: true
-    }
-});
+const io = require('../services/socket');
 
 io.on('connection', (socket) => {
     console.log('A USER CONNECTED.........')
+
+    socket.on('joinGroup', (groupId) => {
+        socket.join(groupId)
+        console.log('User joined group ${groupId}');
+    })
 })
 
 exports.addChat = async (req, res, next) => {
