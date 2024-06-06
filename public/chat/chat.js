@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const chatMessages = document.getElementById('chat-messages');
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');   
+    const fileInput = document.getElementById('file-input');
     const createGroupButton = document.getElementById('create-group-button');
     const addUserOption = document.getElementById('add-user-option');
     const removeUserOption = document.getElementById('remove-user-option');
@@ -17,6 +18,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const makeAdminModal = new bootstrap.Modal(document.getElementById('make-admin-modal'), {});
     const dropdown = document.getElementById('user-management-dropdown');
 
+    const socket = io('http://localhost:4000');
+
     // Get the logged-in username from local storage 
     const tokenDetails = localStorage.getItem("token");
     let loggedInUser = '';
@@ -30,22 +33,23 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Add a message to the chat
     function addMessage(message, sender) {
-        const messageElement = document.createElement('div');        
-
-        // if (message === '') {
-        //     messageElement.classList.add('join-message');
-        //     messageElement.innerHTML = `${sender === loggedInUser ? 'You' : sender} joined the chat!`;
-        // } else {
-            messageElement.classList.add('message');
-            messageElement.innerHTML = `<strong>${sender === loggedInUser ? 'You' : sender}:</strong> ${message}`;
-        // }
-
+        const messageElement = document.createElement('div');    
+        messageElement.classList.add('message');
+        
+        const senderText = `<strong>${sender === loggedInUser ? 'You' : sender}:</strong>`;
+        
+        // Check if the message is a URL
+        if (message.startsWith('http://') || message.startsWith('https://')) {
+            // Create a link to the file URL
+            messageElement.innerHTML = `${senderText} <a href="${message}" target="_blank">Attached File</a>`;
+        } else {
+            // Regular text message
+            messageElement.innerHTML = `${senderText} ${message}`;
+        }
+        
         chatMessages.appendChild(messageElement);
         chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
     }
-
-    // Show Users joined! message
-    // addMessage('', loggedInUser);
 
     let currentGroupId = null;
     let msgId = null;
@@ -102,19 +106,49 @@ document.addEventListener('DOMContentLoaded', (event) => {
         if (message && currentGroupId) {
             axios.post('http://13.236.146.218:5000/chat/add-chat', { message: message, groupId: currentGroupId }, { headers: { "Authorization": localStorage.getItem("token") } })
             .then(response => {
-                addMessage(message, loggedInUser);
-                saveMessageToLocalStorage(message, loggedInUser, response.data.chatMessage.id, currentGroupId);
                 messageInput.value = '';
-                msgId = response.data.chatMessage.id;
             })
             .catch(error => console.error(error));
         }
     });
 
+    // Event listener for the File input
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('groupId', currentGroupId);
+
+            axios.post('http://localhost:5000/chat/upload-file', formData, {
+                headers: {
+                    "Authorization": localStorage.getItem("token"),
+                    "Content-Type": "multipart/form-data"
+                }
+            })
+            .then(response => {
+                // Populate the message input field with the S3 URL
+                messageInput.value = response.data.fileUrl;
+                fileInput.value = ''; // Clear the file input after upload
+                console.log('File uploaded successfully:', response.data);
+            })
+            .catch(error => console.error(error));
+        }
+    })
+
     // Event listener for 'Enter' key
     messageInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             sendButton.click();
+        }
+    });
+
+    // Listen for real-time chat messages
+    socket.on('newMessage', (data) => {
+        if (data.groupId === currentGroupId) {
+            addMessage(data.message, data.username);
+            saveMessageToLocalStorage(data.message, data.username, data.id, currentGroupId);
+            msgId = data.id;
         }
     });
 
@@ -127,10 +161,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         axios.get(`http://13.236.146.218:5000/chat/get-chats?lastId=${msgId}&groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             response.data.chats.forEach(message => {
-                // if (message.id > msgId) {
-                //     addMessage(message.message, message.username);
-                //     msgId = message.id;
-                // }
                 addMessage(message.message, message.username);
                 saveMessageToLocalStorage(message.message, message.username, message.id, currentGroupId);
                 msgId = message.id;
@@ -139,12 +169,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
         .catch(error => console.error(error));
     }    
 
-    // fetchChats();
-    // setInterval(fetchChats, 2000);
-
     // Fetch all users and populate the checkboxes
     function fetchUsers() {
-        axios.get('http://13.236.146.218:5000/chat/get-users', { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.get('http://localhost:5000/user/get-users', { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             const users = response.data.users;
             localStorage.setItem('users', JSON.stringify(users));
@@ -165,14 +192,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         })
         .catch(error => console.error(error));
     }
-
-    fetchUsers();
-
+    
+    fetchUsers()
+    
     function getUsersFromGroup() {
         // Retrieve the users from local storage
         const allUsers = JSON.parse(localStorage.getItem('users')) || [];
         // Fetch group members
-        axios.get(`http://13.236.146.218:5000/chat/get-group-members?groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.get(`http://localhost:5000/group/get-group-members?groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             const groupMembers = response.data.members;
             const groupMemberIds = response.data.members.map(member => member.id);
@@ -258,12 +285,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         removeUserModal.show();
     })
 
-    let pollInterval;
-
     // Function to check if the user is an admin of the current group
     async function isAdminStatus(groupId) {
         try {
-            const response = await axios.get(`http://13.236.146.218:5000/chat/get-group-members?groupId=${groupId}`, { headers: { "Authorization": localStorage.getItem("token") } });
+            const response = await axios.get(`http://localhost:5000/group/get-group-members?groupId=${groupId}`, { headers: { "Authorization": localStorage.getItem("token") } });
             const groupMembers = response.data.members;
             console.log(groupMembers);
             for (let i = 0; i < groupMembers.length; i++) {
@@ -278,7 +303,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
     
     function fetchGroups() {
-        axios.get('http://13.236.146.218:5000/chat/get-groups', { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.get('http://localhost:5000/group/get-groups', { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             groupList.innerHTML = '';
             response.data.groups.forEach((group, index) => {
@@ -286,6 +311,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 groupElement.classList.add('group-item');
                 groupElement.textContent = group.name;
                 groupElement.addEventListener('click', async () => {
+                    localStorage.setItem('index', index);
                     document.querySelectorAll('.group-item').forEach(item => item.classList.remove('active'));
                     groupElement.classList.add('active');
                     currentGroupId = group.id;
@@ -303,19 +329,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     localStorage.setItem('index', index);
                     fetchChats();
                     getUsersFromGroup();
-                    
-                    // clear existing poll interval and start a new one for the new group
-                    if (pollInterval) {
-                        clearInterval(pollInterval);
-                    }
-                    pollInterval = setInterval(fetchChats, 2000);
                 });
                 groupList.appendChild(groupElement);
 
-                // if (index === 0) {
-                //     groupElement.click();
-                // }
-                console.log('index', parseInt(localStorage.getItem('index')));
                 if (index === parseInt(localStorage.getItem('index'))) {
                     groupElement.click();
                 }
@@ -326,17 +342,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
     
     fetchGroups();
 
+    // Listen for newGroups event
+    socket.on('newGroup', () => {
+        fetchGroups();
+    });
+
     // Create group form submission
     document.getElementById('create-group-form').addEventListener('submit', (event) => {
         event.preventDefault();
         const groupName = document.getElementById('group-name').value;
         const selectedUserIds = Array.from(document.querySelectorAll('#group-members input:checked')).map(checkbox => checkbox.value);
 
-        axios.post('http://13.236.146.218:5000/chat/add-group', { name: groupName, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/add-group', { name: groupName, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             createGroupModal.hide();
-            fetchGroups();
         })
         .catch(error => console.error(error));
     })    
@@ -346,7 +366,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         event.preventDefault();
         const selectedUserIds = Array.from(document.querySelectorAll('#add-user-checkboxes input:checked')).map(checkbox => checkbox.value);
         
-        axios.post('http://13.236.146.218:5000/chat/add-users-to-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/add-users-to-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             addUserModal.hide();
@@ -359,7 +379,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         event.preventDefault();
         const selectedUserIds = Array.from(document.querySelectorAll('#make-admin-checkboxes input:checked')).map(checkbox => checkbox.value);
         
-        axios.post('http://13.236.146.218:5000/chat/make-admin', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/make-admin', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             makeAdminModal.hide();
@@ -372,7 +392,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         event.preventDefault();
         const selectedUserIds = Array.from(document.querySelectorAll('#remove-user-checkboxes input:checked')).map(checkbox => checkbox.value);
         
-        axios.post('http://13.236.146.218:5000/chat/remove-users-from-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/remove-users-from-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             removeUserModal.hide();

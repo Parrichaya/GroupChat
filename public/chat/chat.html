@@ -55,6 +55,8 @@
             <div class="input-group">
                 <input type="text" class="form-control" id="message-input" placeholder="Type a message...">
                 <div class="input-group-append">
+                    <input type="file" id="file-input" class="d-none">
+                    <label class="btn custom-button text-white" for="file-input">+</label>
                     <button class="btn custom-button text-white" id="send-button">Send</button>
                 </div>
             </div>
@@ -167,6 +169,7 @@
 </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.1/axios.min.js"></script>
+    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
     <script src="chat.js"></script>
 </body>
 </html>
