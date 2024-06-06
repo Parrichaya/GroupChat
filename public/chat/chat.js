@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Fetch all users and populate the checkboxes
     function fetchUsers() {
-        axios.get('http://localhost:5000/chat/get-users', { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.get('http://localhost:5000/user/get-users', { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             const users = response.data.users;
             localStorage.setItem('users', JSON.stringify(users));
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         // Retrieve the users from local storage
         const allUsers = JSON.parse(localStorage.getItem('users')) || [];
         // Fetch group members
-        axios.get(`http://localhost:5000/chat/get-group-members?groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.get(`http://localhost:5000/group/get-group-members?groupId=${currentGroupId}`, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             const groupMembers = response.data.members;
             const groupMemberIds = response.data.members.map(member => member.id);
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Function to check if the user is an admin of the current group
     async function isAdminStatus(groupId) {
         try {
-            const response = await axios.get(`http://localhost:5000/chat/get-group-members?groupId=${groupId}`, { headers: { "Authorization": localStorage.getItem("token") } });
+            const response = await axios.get(`http://localhost:5000/group/get-group-members?groupId=${groupId}`, { headers: { "Authorization": localStorage.getItem("token") } });
             const groupMembers = response.data.members;
             console.log(groupMembers);
             for (let i = 0; i < groupMembers.length; i++) {
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
     
     function fetchGroups() {
-        axios.get('http://localhost:5000/chat/get-groups', { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.get('http://localhost:5000/group/get-groups', { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             groupList.innerHTML = '';
             response.data.groups.forEach((group, index) => {
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         const groupName = document.getElementById('group-name').value;
         const selectedUserIds = Array.from(document.querySelectorAll('#group-members input:checked')).map(checkbox => checkbox.value);
 
-        axios.post('http://localhost:5000/chat/add-group', { name: groupName, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/add-group', { name: groupName, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             createGroupModal.hide();
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         event.preventDefault();
         const selectedUserIds = Array.from(document.querySelectorAll('#add-user-checkboxes input:checked')).map(checkbox => checkbox.value);
         
-        axios.post('http://localhost:5000/chat/add-users-to-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/add-users-to-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             addUserModal.hide();
@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         event.preventDefault();
         const selectedUserIds = Array.from(document.querySelectorAll('#make-admin-checkboxes input:checked')).map(checkbox => checkbox.value);
         
-        axios.post('http://localhost:5000/chat/make-admin', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/make-admin', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             makeAdminModal.hide();
@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         event.preventDefault();
         const selectedUserIds = Array.from(document.querySelectorAll('#remove-user-checkboxes input:checked')).map(checkbox => checkbox.value);
         
-        axios.post('http://localhost:5000/chat/remove-users-from-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
+        axios.post('http://localhost:5000/group/remove-users-from-group', { groupId: currentGroupId, userIds: selectedUserIds }, { headers: { "Authorization": localStorage.getItem("token") } })
         .then(response => {
             console.log(response);
             removeUserModal.hide();

@@ -37,6 +37,17 @@ exports.addUser = (req, res, next) => {
     })
 }
 
+exports.getUsers = async (req, res, next) => {
+    try {
+        const users = await User.findAll({
+            attributes: ['id', 'username']
+        });
+        res.status(200).json({ users: users });
+    } catch (err) {
+        res.status(500).json({ message: "An error occurred", error: err });
+    }
+}
+
 // Login user with email and password
 const jwt = require('jsonwebtoken');
 
